@@ -1,0 +1,564 @@
+y = data['SiteEnergyUse(kBtu)']
+
+X_train, X_test, y_train, y_test = train_test_split(newX,y,test_size=0.2,random_state = 42)
+
+
+### A.1.1.1. Entraînement d'un modèle de régression linéaire simple
+
+reg = linear_model.LinearRegression()
+reg.fit(X_train,y_train)
+
+baseline_errors = np.sqrt(metrics.mean_squared_error(reg.predict(X_test), y_test))
+r2Score = metrics.r2_score(y_test,reg.predict(X_test))
+
+fig = plt.figure(figsize=(10, 10), dpi= 80, facecolor='w', edgecolor='k')
+
+ax = sns.scatterplot(x=y_test,y=reg.predict(X_test))
+ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=4)
+
+rmse_errors = np.sqrt(metrics.mean_squared_error(reg.predict(X_test), y_test))
+r2Score = metrics.r2_score(y_test,reg.predict(X_test))
+
+ax.text(x=0.65, y=0.15, transform=ax.transAxes, s="RMSE: %.2f" % rmse_errors,fontweight='demibold', 
+        fontsize=15, verticalalignment='top', horizontalalignment='left', color='navy')
+
+ax.text(x=0.65, y=0.11, transform=ax.transAxes, s="R2: %.2f" % r2Score,fontweight='demibold', 
+        fontsize=15, verticalalignment='top', horizontalalignment='left', color='navy')
+
+plt.title('Linear Regression',fontsize=22)
+plt.xlabel('Measured',fontsize=22)
+plt.ylabel('Predicted',fontsize=22)
+plt.xticks(fontsize=22)
+plt.yticks(fontsize=22)
+plt.xlim(-1*1e7,7*1e7)
+plt.ylim(-1*1e7,7*1e7)
+
+plt.show()
+
+
+# Sauvegarde du modèle
+import pickle
+
+filename = 'linear_regression_model.pkl'
+with open(filename, 'wb') as file:
+    pickle.dump(reg,file)
+    
+models_score = pd.DataFrame({})
+models_score = models_score.append(pd.DataFrame(
+    {'Models' : ['Basic Linear Regression'],
+     'R2' : [metrics.r2_score(y_test,reg.predict(X_test))],
+     'RMSE' : [np.sqrt(metrics.mean_squared_error(reg.predict(X_test), y_test))]}),
+                                   ignore_index=True)
+
+models_score.head()
+
+### A.1.1.2. Entraînement d'un modèle de régression Ridge
+
+alphas = np.logspace(-10,10,80)
+
+ridge = linear_model.Ridge(random_state=42)
+
+coefs = []
+errors = []
+for a in alphas:
+    ridge.set_params(alpha=a)
+    ridge.fit(X_train, y_train)
+    coefs.append(ridge.coef_)
+    errors.append(np.sqrt(metrics.mean_squared_error(ridge.predict(X_test), y_test)))
+    
+ax = plt.gca()
+
+ax.plot(alphas, coefs)
+ax.set_xscale('log')
+plt.xlabel('alpha')
+plt.ylabel('weights')
+plt.title('Ridge coefficients as a function of the regularization')
+#plt.axis('tight')
+plt.show()
+
+ax = plt.gca()
+
+ax.plot(alphas, errors,[10**-10,10**10],[baseline_errors,baseline_errors])
+ax.set_xscale('log')
+plt.xlabel('alpha')
+plt.ylabel('error')
+plt.axis('tight')
+plt.show()
+
+#### Cross-validation du modèle de regression Ridge
+
+parameters = {'tol' : [0.1,0.01,0.001,0.0001],"alpha": np.logspace(-10,10,80)}
+
+ridge_grid = GridSearchCV(estimator = Ridge(random_state=42), 
+                      param_grid = parameters,
+                      scoring = 'neg_mean_squared_error',
+                      cv=5,
+                      verbose=0
+                     )
+
+ridge_grid.fit(X_train, y_train)
+
+models_score = models_score.append(pd.DataFrame(
+    {'Models' : ['Ridge Linear Regression'],
+     'R2' : [metrics.r2_score(y_test,ridge_grid.predict(X_test))],
+     'RMSE' : [np.sqrt(metrics.mean_squared_error(ridge_grid.predict(X_test), y_test))]}),
+                                   ignore_index=True)
+
+models_score.head()
+
+# Sauvegarde du modèle
+import pickle
+
+filename = 'ridge_model.pkl'
+with open(filename, 'wb') as file:
+    pickle.dump(ridge_grid,file)
+    
+    
+fig = plt.figure(figsize=(10, 10), dpi= 80, facecolor='w', edgecolor='k')
+
+ax = sns.scatterplot(x=y_test,y=ridge_grid.predict(X_test))
+ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=4)
+
+rmse_errors = np.sqrt(metrics.mean_squared_error(ridge_grid.predict(X_test), y_test))
+r2Score = metrics.r2_score(y_test,ridge_grid.predict(X_test))
+
+ax.text(x=0.65, y=0.15, transform=ax.transAxes, s="RMSE: %.2f" % rmse_errors,fontweight='demibold', 
+        fontsize=15, verticalalignment='top', horizontalalignment='left', color='navy')
+
+ax.text(x=0.65, y=0.11, transform=ax.transAxes, s="R2: %.2f" % r2Score,fontweight='demibold', 
+        fontsize=15, verticalalignment='top', horizontalalignment='left', color='navy')
+
+plt.title('Ridge Regression',fontsize=22)
+plt.xlabel('Measured',fontsize=22)
+plt.ylabel('Predicted',fontsize=22)
+plt.xticks(fontsize=22)
+plt.yticks(fontsize=22)
+plt.xlim(-1*1e7,7*1e7)
+plt.ylim(-1*1e7,7*1e7)
+
+plt.show()
+
+
+### A.1.1.3. Entraînement d'un modèle de régression Lasso
+
+alphas = np.logspace(-10,10,80)
+
+lasso = linear_model.Lasso(random_state=42)
+
+coefs = []
+errors = []
+for a in alphas:
+    lasso.set_params(alpha=a)
+    lasso.fit(X_train, y_train)
+    coefs.append(lasso.coef_)
+    errors.append(np.sqrt(metrics.mean_squared_error(lasso.predict(X_test), y_test)))
+    
+ax = plt.gca()
+
+ax.plot(alphas, coefs)
+ax.set_xscale('log')
+plt.xlabel('alpha')
+plt.ylabel('weights')
+plt.title('Lasso coefficients as a function of the regularization')
+#plt.axis('tight')
+plt.show()
+
+ax = plt.gca()
+
+ax.plot(alphas, errors,[10**-10,10**10],[baseline_errors,baseline_errors])
+ax.set_xscale('log')
+plt.xlabel('alpha')
+plt.ylabel('error')
+plt.axis('tight')
+plt.show()
+
+parameters = {'tol' : [0.1,0.01,0.001,0.0001],"alpha": np.logspace(-10,10,80)}
+
+lasso_grid = GridSearchCV(estimator = Lasso(random_state=42), 
+                      param_grid = parameters,
+                      scoring = 'neg_mean_squared_error',
+                      cv=5,
+                      verbose=0
+                     )
+
+lasso_grid.fit(X_train, y_train)
+
+models_score = models_score.append(pd.DataFrame(
+    {'Models' : ['Lasso Linear Regression'],
+     'R2' : [metrics.r2_score(y_test,lasso_grid.predict(X_test))],
+     'RMSE' : [np.sqrt(metrics.mean_squared_error(lasso_grid.predict(X_test), y_test))]}),
+                                   ignore_index=True)
+
+models_score.head()
+
+filename = 'lasso_model.pkl'
+with open(filename, 'wb') as file:
+    pickle.dump(lasso_grid,file)
+    
+fig = plt.figure(figsize=(10, 10), dpi= 80, facecolor='w', edgecolor='k')
+
+ax = sns.scatterplot(x=y_test,y=lasso_grid.predict(X_test))
+ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=4)
+
+rmse_errors = np.sqrt(metrics.mean_squared_error(lasso_grid.predict(X_test), y_test))
+r2Score = metrics.r2_score(y_test,lasso_grid.predict(X_test))
+
+ax.text(x=0.65, y=0.15, transform=ax.transAxes, s="RMSE: %.2f" % rmse_errors,fontweight='demibold', 
+        fontsize=15, verticalalignment='top', horizontalalignment='left', color='navy')
+
+ax.text(x=0.65, y=0.11, transform=ax.transAxes, s="R2: %.2f" % r2Score,fontweight='demibold', 
+        fontsize=15, verticalalignment='top', horizontalalignment='left', color='navy')
+
+plt.title('Lasso Regression',fontsize=22)
+plt.xlabel('Measured',fontsize=22)
+plt.ylabel('Predicted',fontsize=22)
+plt.xticks(fontsize=22)
+plt.yticks(fontsize=22)
+plt.xlim(-1*1e7,7*1e7)
+plt.ylim(-1*1e7,7*1e7)
+
+plt.show()
+
+### A.1.1.4. Entraînement d'un modèle de régression ElasticNet
+
+parameters = {'tol' : [0.1,0.01,0.001,0.0001],"alpha": np.logspace(-10,10,80),"l1_ratio": np.arange(0.0, 1.0, 0.1)}
+
+elasticNet_grid = GridSearchCV(estimator = ElasticNet(random_state=42), 
+                      param_grid = parameters,
+                      scoring = 'neg_mean_squared_error',
+                      cv=5,
+                      verbose=0
+                     )
+
+elasticNet_grid.fit(X_train, y_train)
+
+models_score = models_score.append(pd.DataFrame(
+    {'Models' : ['ElasticNet Linear Regression'],
+     'R2' : [metrics.r2_score(y_test,elasticNet_grid.predict(X_test))],
+     'RMSE' : [np.sqrt(metrics.mean_squared_error(elasticNet_grid.predict(X_test), y_test))]}),
+                                   ignore_index=True)
+
+models_score.head()
+
+
+filename = 'elasticNet_model.pkl'
+with open(filename, 'wb') as file:
+    pickle.dump(elasticNet_grid,file)
+    
+fig = plt.figure(figsize=(10, 10), dpi= 80, facecolor='w', edgecolor='k')
+
+ax = sns.scatterplot(x=y_test,y=elasticNet_grid.predict(X_test))
+ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=4)
+
+rmse_errors = np.sqrt(metrics.mean_squared_error(elasticNet_grid.predict(X_test), y_test))
+r2Score = metrics.r2_score(y_test,elasticNet_grid.predict(X_test))
+
+ax.text(x=0.65, y=0.15, transform=ax.transAxes, s="RMSE: %.2f" % rmse_errors,fontweight='demibold', 
+        fontsize=15, verticalalignment='top', horizontalalignment='left', color='navy')
+
+ax.text(x=0.65, y=0.11, transform=ax.transAxes, s="R2: %.2f" % r2Score,fontweight='demibold', 
+        fontsize=15, verticalalignment='top', horizontalalignment='left', color='navy')
+
+plt.title('ElaticNet Regression',fontsize=22)
+plt.xlabel('Measured',fontsize=22)
+plt.ylabel('Predicted',fontsize=22)
+plt.xticks(fontsize=22)
+plt.yticks(fontsize=22)
+plt.xlim(-1*1e7,7*1e7)
+plt.ylim(-1*1e7,7*1e7)
+
+plt.show()
+
+### A.1.1.5. Entraînement d'un modèle de régression à vecteur de support
+
+parameters = {'epsilon' : [0.001, 0.01, 0.1, 1],'C' : [0.001, 0.01, 0.1, 1, 10]}
+
+svr_grid = GridSearchCV(estimator = SVR(), 
+                      param_grid = parameters,
+                      scoring = 'neg_mean_squared_error',
+                      cv=5,
+                      verbose=2
+                      )
+
+svr_grid.fit(X_train, y_train)
+
+models_score = models_score.append(pd.DataFrame(
+    {'Models' : ['Support Vector Regression'],
+     'R2' : [metrics.r2_score(y_test,svr_grid.predict(X_test))],
+     'RMSE' : [np.sqrt(metrics.mean_squared_error(svr_grid.predict(X_test), y_test))]}),
+                                   ignore_index=True)
+
+models_score.head()
+
+filename = 'svr_model.pkl'
+with open(filename, 'wb') as file:
+    pickle.dump(svr_grid,file)
+    
+    
+fig = plt.figure(figsize=(10, 10), dpi= 80, facecolor='w', edgecolor='k')
+
+ax = sns.scatterplot(x=y_test,y=svr_grid.predict(X_test))
+ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=4)
+
+rmse_errors = np.sqrt(metrics.mean_squared_error(svr_grid.predict(X_test), y_test))
+r2Score = metrics.r2_score(y_test,svr_grid.predict(X_test))
+
+ax.text(x=0.65, y=0.15, transform=ax.transAxes, s="RMSE: %.2f" % rmse_errors,fontweight='demibold', 
+        fontsize=15, verticalalignment='top', horizontalalignment='left', color='navy')
+
+ax.text(x=0.65, y=0.11, transform=ax.transAxes, s="R2: %.2f" % r2Score,fontweight='demibold', 
+        fontsize=15, verticalalignment='top', horizontalalignment='left', color='navy')
+
+plt.title('Support Vector Regression',fontsize=22)
+plt.xlabel('Measured',fontsize=22)
+plt.ylabel('Predicted',fontsize=22)
+plt.xticks(fontsize=22)
+plt.yticks(fontsize=22)
+plt.xlim(-1*1e7,7*1e7)
+plt.ylim(-1*1e7,7*1e7)
+
+plt.show()
+
+### A.1.1.6. Entraînement d'un modèle de régression random forest
+
+
+
+parameters = {'n_estimators' : [int(x) for x in np.linspace(1,1001,20)]}
+
+randomForestRegressor_grid = GridSearchCV(RandomForestRegressor(),
+                                          param_grid = parameters,
+                                          scoring = 'neg_mean_absolute_error',
+                                          return_train_score=True,
+                                          verbose=2,cv=5)
+
+randomForestRegressor_grid.fit(X_train, y_train)
+
+
+fig,axes = plt.subplots(1,2,figsize=(10, 5), dpi= 80, facecolor='white', edgecolor='k')
+
+param_values = list(randomForestRegressor_grid.cv_results_['param_%s' % 'n_estimators'])
+mean_train_scores = randomForestRegressor_grid.cv_results_['mean_train_score']
+mean_test_scores = randomForestRegressor_grid.cv_results_['mean_test_score']
+mean_fit_times = randomForestRegressor_grid.cv_results_['mean_fit_time']
+
+plt.subplot(121)
+plt.plot(param_values,mean_train_scores, 'bo-', label = 'Train set')
+plt.plot(param_values,mean_test_scores, 'ko-', label = 'Test set')
+
+plt.legend()
+plt.xlabel('n_estimators',fontsize=17)
+plt.ylabel('Neg Mean Absolute Error',fontsize=17)
+plt.title('Score vs %s' % 'n_estimators',fontsize=17)
+    
+plt.subplot(122)
+plt.plot(param_values, mean_fit_times, 'ro-')
+
+plt.xlabel('n_estimators',fontsize=17)
+plt.ylabel('Train Time (sec)',fontsize=17)
+plt.title('Training Time vs %s' % 'n_estimators',fontsize=17)
+
+plt.show()
+
+
+parameters = {'max_features': list(range(1, X_train.shape[1] + 1))}
+
+randomForestRegressor_grid = GridSearchCV(RandomForestRegressor(),
+                                          param_grid = parameters,
+                                          scoring = 'neg_mean_absolute_error',
+                                          return_train_score=True,
+                                          verbose=2,cv=5)
+
+randomForestRegressor_grid.fit(X_train, y_train)
+
+
+fig,axes = plt.subplots(1,2,figsize=(10, 5), dpi= 80, facecolor='white', edgecolor='k')
+
+param_values = list(randomForestRegressor_grid.cv_results_['param_%s' % 'max_features'])
+mean_train_scores = randomForestRegressor_grid.cv_results_['mean_train_score']
+mean_test_scores = randomForestRegressor_grid.cv_results_['mean_test_score']
+mean_fit_times = randomForestRegressor_grid.cv_results_['mean_fit_time']
+
+plt.subplot(121)
+plt.plot(param_values,mean_train_scores, 'bo-', label = 'Train set')
+plt.plot(param_values,mean_test_scores, 'ko-', label = 'Test set')
+
+plt.legend()
+plt.xlabel('Max features',fontsize=17)
+plt.ylabel('Neg Mean Absolute Error',fontsize=17)
+plt.title('Score vs %s' % 'n_estimators',fontsize=17)
+    
+plt.subplot(122)
+plt.plot(param_values, mean_fit_times, 'ro-')
+
+plt.xlabel('Max features',fontsize=17)
+plt.ylabel('Train Time (sec)',fontsize=17)
+plt.title('Training Time vs %s' % 'n_estimators',fontsize=17)
+
+plt.show()
+
+
+parameters = {'n_estimators' : [100], 'min_samples_leaf' : [1,2,3,4,5,6,7,8,9,10], 
+              'max_features': [int(x) for x in np.linspace(1,20,20)]}
+
+randomForestRegressor_grid = GridSearchCV(RandomForestRegressor(),
+                                          param_grid = parameters,
+                                          verbose=2,cv=5)
+
+randomForestRegressor_grid.fit(X_train, y_train)
+
+
+models_score = models_score.append(pd.DataFrame(
+    {'Models' : ['Random Forest Regression'],
+     'R2' : [metrics.r2_score(y_test,randomForestRegressor_grid.predict(X_test))],
+     'RMSE' : [np.sqrt(metrics.mean_squared_error(randomForestRegressor_grid.predict(X_test), y_test))]}),
+                                   ignore_index=True)
+
+models_score.head(n=10)
+
+filename = 'randomForestRegressor_model.pkl'
+with open(filename, 'wb') as file:
+    pickle.dump(randomForestRegressor_grid,file)
+    
+fig = plt.figure(figsize=(10, 10), dpi= 80, facecolor='w', edgecolor='k')
+
+ax = sns.scatterplot(x=y_test,y=randomForestRegressor_grid.predict(X_test))
+ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=4)
+
+rmse_errors = np.sqrt(metrics.mean_squared_error(randomForestRegressor_grid.predict(X_test), y_test))
+r2Score = metrics.r2_score(y_test,randomForestRegressor_grid.predict(X_test))
+
+ax.text(x=0.65, y=0.15, transform=ax.transAxes, s="RMSE: %.2f" % rmse_errors,fontweight='demibold', 
+        fontsize=15, verticalalignment='top', horizontalalignment='left', color='navy')
+
+ax.text(x=0.65, y=0.11, transform=ax.transAxes, s="R2: %.2f" % r2Score,fontweight='demibold', 
+        fontsize=15, verticalalignment='top', horizontalalignment='left', color='navy')
+
+plt.title('Random Forest Regression',fontsize=22)
+plt.xlabel('Measured',fontsize=22)
+plt.ylabel('Predicted',fontsize=22)
+plt.xticks(fontsize=22)
+plt.yticks(fontsize=22)
+plt.xlim(-1*1e7,7*1e7)
+plt.ylim(-1*1e7,7*1e7)
+
+plt.show()
+
+importances = randomForestRegressor_grid.best_estimator_.feature_importances_
+
+feature_importances = pd.concat((pd.DataFrame(X_train.columns, columns = ['Variable']), 
+                      pd.DataFrame(importances, columns = ['Importance'])), 
+                                axis = 1).sort_values(by='Importance', ascending = False)
+                          
+fig,ax = plt.subplots(figsize=(20, 20), dpi= 80, facecolor='w', edgecolor='k')
+
+
+g = sns.barplot(x=feature_importances['Importance'].head(30), 
+                y=feature_importances['Variable'].head(30),ax=ax)
+
+plt.title("Random Forest Regressor - Importance des variables",fontsize=30)
+
+plt.xlabel("Importance",fontsize=30)
+plt.ylabel("Variable",fontsize=30)
+plt.xticks(fontsize=25)
+plt.yticks(fontsize=25)
+
+plt.show()
+
+### A.1.1.7. Entraînement d'un modèle de régression GradientBoostingRegressor
+
+
+parameters = {'n_estimators' : [100],'learning_rate' : [0.1],'max_depth':range(3,10,1),
+              'min_samples_leaf' : [1,2,3,4,5,6,7,8,9,10]}
+
+gradientBoostingRegressor_grid = GridSearchCV(GradientBoostingRegressor(random_state=42),
+                                          param_grid = parameters,
+                                          scoring = 'neg_mean_absolute_error',
+                                          return_train_score=True,
+                                          verbose=2,cv=5)
+
+gradientBoostingRegressor_grid.fit(X_train, y_train)
+
+
+models_score = models_score.append(pd.DataFrame(
+    {'Models' : ['Gradient Boosting Regression'],
+     'R2' : [metrics.r2_score(y_test,gradientBoostingRegressor_grid.predict(X_test))],
+     'RMSE' : [np.sqrt(metrics.mean_squared_error(gradientBoostingRegressor_grid.predict(X_test), y_test))]}),
+                                   ignore_index=True)
+
+models_score['RMSE (%)'] = models_score['RMSE'].divide(y_test.max()) * 100
+models_score.head(n=10)
+
+
+
+filename = 'gradientBoostingRegressor_model.pkl'
+with open(filename, 'wb') as file:
+    pickle.dump(gradientBoostingRegressor_grid,file)
+    
+fig = plt.figure(figsize=(10, 10), dpi= 80, facecolor='w', edgecolor='k')
+
+ax = sns.scatterplot(x=y_test,y=gradientBoostingRegressor_grid.predict(X_test))
+ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=4)
+
+rmse_errors = np.sqrt(metrics.mean_squared_error(gradientBoostingRegressor_grid.predict(X_test), y_test))
+r2Score = metrics.r2_score(y_test,gradientBoostingRegressor_grid.predict(X_test))
+
+ax.text(x=0.65, y=0.15, transform=ax.transAxes, s="RMSE: %.2f" % rmse_errors,fontweight='demibold', 
+        fontsize=15, verticalalignment='top', horizontalalignment='left', color='navy')
+
+ax.text(x=0.65, y=0.11, transform=ax.transAxes, s="R2: %.2f" % r2Score,fontweight='demibold', 
+        fontsize=15, verticalalignment='top', horizontalalignment='left', color='navy')
+
+plt.title('Gradient Boosting Regression',fontsize=22)
+plt.xlabel('Measured',fontsize=22)
+plt.ylabel('Predicted',fontsize=22)
+plt.xticks(fontsize=22)
+plt.yticks(fontsize=22)
+plt.xlim(-1*1e7,7*1e7)
+plt.ylim(-1*1e7,7*1e7)
+
+plt.show()
+
+
+importances = gradientBoostingRegressor_grid.best_estimator_.feature_importances_
+
+feature_importances = pd.concat((pd.DataFrame(X_train.columns, columns = ['Variable']), 
+                      pd.DataFrame(importances, columns = ['Importance'])), 
+                                axis = 1).sort_values(by='Importance', ascending = False)
+
+fig,ax = plt.subplots(figsize=(20, 20), dpi= 80, facecolor='w', edgecolor='k')
+
+
+g = sns.barplot(x=feature_importances['Importance'].head(30), 
+                y=feature_importances['Variable'].head(30),ax=ax)
+
+plt.title("Gradient Boosting Regressor - Importance des variables",fontsize=30)
+
+plt.xlabel("Importance",fontsize=30)
+plt.ylabel("Variable",fontsize=30)
+plt.xticks(fontsize=25)
+plt.yticks(fontsize=25)
+
+plt.show()
+
+
+### A.1.1.8. Comparaison des modèles
+
+fig,ax = plt.subplots(figsize=(10, 8), dpi= 80, facecolor='w', edgecolor='k')
+
+models_score_melt = pd.melt(models_score.reset_index(), id_vars = ['index'], 
+                            value_name = 'score', value_vars=['R2', 'RMSE (%)'])
+
+g = sns.barplot(x = models_score_melt['index'],
+            y = models_score_melt['score'], hue = models_score_melt['variable'])
+
+ax.set_xticklabels(models_score['Models'],horizontalalignment='right',rotation=45)
+
+plt.title('Comparaison des erreurs relatives des modèles (en %)',fontsize=17)
+
+plt.xlabel('Models',fontsize=20)
+plt.ylabel('RMSE (%)',fontsize=20)
+plt.xticks(fontsize=17)
+plt.yticks(fontsize=17)
+
+plt.show()
+
