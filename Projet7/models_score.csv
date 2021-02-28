@@ -1,0 +1,4 @@
+,Models,Training set,Validation set
+0,XGBoost Classifier,0.950482438779803,0.9504917486247708
+1,Logistic Regression,0.699899813377707,0.697167487684729
+2,Random Forest Classifier,0.9611302398048414,0.9646148677484087
