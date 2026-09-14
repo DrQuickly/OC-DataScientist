@@ -15,6 +15,38 @@ Les fichiers de `migrations/` s'appliquent dans l'ordre numérique :
 | `0004_rls.sql` | Row-Level Security. Un agent ne peut jamais lire commissions/charges/rentabilité. |
 | `0005_reference.sql` | Données de référence (les 4 réseaux). Aucune donnée de démo. |
 | `0006_creances_lien_cloture_et_controles.sql` | Lien explicite créance↔clôture (création + remboursement), gel des dépenses/créances d'une clôture verrouillée, contrôle de continuité des soldes d'ouverture (motif obligatoire si divergence). |
+| `0007_rpc_soumettre_cloture.sql` | Fonction `soumettre_cloture(...)` : soumission atomique et idempotente d'une clôture + enfants (appelée par la file de synchronisation hors ligne). |
+| `0008_storage_photos.sql` | Bucket privé `photos-clotures` + politiques (écriture/lecture authentifiées). |
+
+## Edge Function
+
+`supabase/functions/creer-agent/` crée un compte AGENT (auth + profil + affectations)
+via la clé `service_role`, après vérification que l'appelant est ADMIN.
+
+```bash
+supabase functions deploy creer-agent
+# SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY sont fournis
+# automatiquement par Supabase à la fonction.
+```
+
+## Premier administrateur
+
+Aucune donnée de démo n'est insérée. Pour créer le tout premier ADMIN (les
+suivants et les agents se créent ensuite depuis l'app) :
+
+1. Créer l'utilisateur dans **Authentication → Users** (ou via l'API admin).
+2. Insérer son profil :
+
+```sql
+insert into public.utilisateurs (id, nom_complet, role, actif)
+values ('<uuid-de-auth.users>', 'Nom Propriétaire', 'ADMIN', true);
+```
+
+## Point d'attention — photo (bucket privé)
+
+Le bucket `photos-clotures` est **privé**. La synchro stocke le *chemin* de
+l'objet dans `clotures.photo_url` ; l'écran admin génère une **URL signée**
+(`createSignedUrl`) à la demande. Ne pas revenir à `getPublicUrl`.
 
 ### Avec le CLI Supabase
 

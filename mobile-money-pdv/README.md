@@ -25,9 +25,16 @@ variation des UV prédit la variation des espèces**.
 | Schéma SQL + vues de calcul | ✅ `supabase/migrations/` |
 | Audit append-only + immuabilité + horodatage serveur | ✅ |
 | RLS (cloisonnement des agents) | ✅ |
-| Edge Function création de comptes agents | ⏳ à venir |
-| Auth + écrans agent/admin | ⏳ à venir |
-| Mode hors ligne + synchronisation | ⏳ à venir |
+| Edge Function création de comptes agents | ✅ `supabase/functions/creer-agent` |
+| Auth + écrans agent/admin | ✅ connexion, clôture agent, clôtures admin, comptes |
+| Mode hors ligne + synchronisation | ✅ Dexie + RPC idempotente + indicateur Synchronisé / En attente |
+| Compression photo (≤300 ko) + bucket privé | ✅ |
+
+### Il reste, pour une mise en service réelle
+
+- Créer un projet Supabase, appliquer les migrations, déployer l'Edge Function,
+  créer le premier ADMIN (voir `supabase/README.md`), renseigner `.env`.
+- Test d'intégration SQL↔TS sur le cas d'acceptation (une fois la base connectée).
 
 ## Démarrage
 
