@@ -14,6 +14,7 @@ Les fichiers de `migrations/` s'appliquent dans l'ordre numérique :
 | `0003_audit_immuabilite.sql` | Journal append-only, immuabilité des clôtures soumises, photo obligatoire, horodatage serveur, contrôle des 100 %. |
 | `0004_rls.sql` | Row-Level Security. Un agent ne peut jamais lire commissions/charges/rentabilité. |
 | `0005_reference.sql` | Données de référence (les 4 réseaux). Aucune donnée de démo. |
+| `0006_creances_lien_cloture_et_controles.sql` | Lien explicite créance↔clôture (création + remboursement), gel des dépenses/créances d'une clôture verrouillée, contrôle de continuité des soldes d'ouverture (motif obligatoire si divergence). |
 
 ### Avec le CLI Supabase
 
