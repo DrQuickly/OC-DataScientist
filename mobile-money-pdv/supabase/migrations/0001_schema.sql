@@ -92,8 +92,8 @@ create table if not exists public.clotures (
   date_cloture           date not null,
   especes_debut          bigint not null default 0,
   especes_fin_constatee  bigint not null default 0,
-  apports_especes        bigint not null default 0,
-  sorties_especes        bigint not null default 0,
+  apports_especes        bigint not null default 0,   -- NON opérationnels (banque, proprio, transfert) — jamais un dépôt client
+  sorties_especes        bigint not null default 0,   -- NON opérationnelles (banque, proprio, transfert) — jamais un retrait client
   photo_url              text,                            -- obligatoire à la soumission (trigger)
   statut                 public.statut_cloture not null default 'BROUILLON',
   motif_derogation       text,                            -- justification si ouverture modifiée

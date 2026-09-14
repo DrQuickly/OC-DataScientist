@@ -34,9 +34,17 @@ export interface EntreesCloture {
   especes_debut: number;
   /** Espèces comptées physiquement en fin de journée. */
   especes_fin_constatee: number;
-  /** Apports d'espèces dans la caisse pendant la journée (hors opérations MM). */
+  /**
+   * Apports d'espèces NON opérationnels dans la caisse (injection du propriétaire,
+   * retour de banque, transfert reçu d'un autre PDV). JAMAIS les espèces reçues
+   * lors d'un dépôt client : celles-ci sont déjà captées par flux_net_uv.
+   */
   apports_especes: number;
-  /** Sorties d'espèces de la caisse pendant la journée (décaissements retraits clients). */
+  /**
+   * Sorties d'espèces NON opérationnelles de la caisse (dépôt en banque, remise
+   * au propriétaire, transfert vers un autre PDV). JAMAIS les espèces versées
+   * lors d'un retrait client : celles-ci sont déjà captées par flux_net_uv.
+   */
   sorties_especes: number;
   /** Somme des dépenses (charges de caisse) rattachées à la clôture. */
   total_depenses: number;

@@ -7,6 +7,12 @@
  *   - Dépôt client  : UV sortent, espèces entrent.
  *   - Retrait client : UV entrent, espèces sortent.
  *
+ * Corollaire IMPORTANT : l'effet des dépôts ET des retraits sur la caisse est
+ * DÉJÀ contenu dans flux_net_uv. Les champs apports_especes / sorties_especes
+ * ne servent QU'AUX mouvements NON opérationnels (banque, propriétaire, transfert
+ * inter-PDV). Y ressaisir un retrait/dépôt client compterait deux fois et fausserait
+ * l'écart.
+ *
  * Ces fonctions sont PURES (aucun effet de bord, aucune dépendance réseau/horloge)
  * afin d'être testables et de produire exactement le même résultat que les vues
  * PostgreSQL côté serveur. Le calcul client sert d'aperçu ; le serveur fait foi.
